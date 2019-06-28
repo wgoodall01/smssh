@@ -14,17 +14,13 @@ import (
 
 	"github.com/kevinburke/twilio-go"
 
+	"github.com/wgoodall01/smssh/util"
+
 	_ "github.com/joho/godotenv/autoload"
 )
 
 const inFileName string = "in.fifo"
 const outFileName string = "out.fifo"
-
-func fatal(msg string, err error) {
-	if err != nil {
-		log.Fatalf("%s: %v", msg, err)
-	}
-}
 
 var TwilioHostUrl string
 var TwilioAccountSid string
@@ -53,7 +49,7 @@ func main() {
 		context.Background(),
 		url.Values{"PhoneNumber": []string{TwilioPhoneNumber}},
 	)
-	fatal("could not get application", err)
+	util.Fatal("could not get application", err)
 	if numCount := len(numberPage.IncomingPhoneNumbers); numCount != 1 {
 		log.Fatalf("looking for 1 phone number in twilio api, got %d", numCount)
 	}
@@ -63,7 +59,7 @@ func main() {
 		incomingNumberSid,
 		url.Values{"SmsMethod": []string{"POST"}, "SmsUrl": []string{webhookUrl}},
 	)
-	fatal("could not update incoming number", err)
+	util.Fatal("could not update incoming number", err)
 
 	// Process stdio pipes
 	readStdin, writeStdin := io.Pipe()
@@ -109,12 +105,12 @@ func main() {
 		for {
 			// Open a shell
 			log.Println("starting shell process...")
-			shell := exec.Command("/usr/bin/env", "bash")
+			shell := exec.Command("/bin/bash", "--login")
 			shell.Stdout = writeStdout
 			shell.Stderr = writeStdout
 			shell.Stdin = readStdin
 			err := shell.Start()
-			fatal("shell run failed", err)
+			util.Fatal("shell run failed", err)
 			log.Println("shell started")
 
 			err = shell.Wait()
@@ -124,7 +120,7 @@ func main() {
 				log.Printf("shell exited: %v\n", exitErr)
 			} else {
 				// Fail if it's something else
-				fatal("shell exit failed", err)
+				util.Fatal("shell exit failed", err)
 			}
 		}
 	}()
