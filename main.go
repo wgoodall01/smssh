@@ -2,10 +2,12 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -43,6 +45,26 @@ func main() {
 
 	// Initialize the twilio client
 	client := twilio.NewClient(TwilioAccountSid, TwilioAuthToken, nil)
+
+	// Update Twilio incoming number with correct host URL
+	webhookUrl := fmt.Sprintf("%s/twilio", TwilioHostUrl)
+	log.Printf("updating twilio webhook URL to %s", webhookUrl)
+	numberPage, err := client.IncomingNumbers.GetPage(
+		context.Background(),
+		url.Values{"PhoneNumber": []string{TwilioPhoneNumber}},
+	)
+	fatal("could not get application", err)
+	if numCount := len(numberPage.IncomingPhoneNumbers); numCount != 1 {
+		log.Fatalf("looking for 1 phone number in twilio api, got %d", numCount)
+	}
+	incomingNumberSid := numberPage.IncomingPhoneNumbers[0].Sid
+	incomingNumber, err := client.IncomingNumbers.Update(
+		context.Background(),
+		incomingNumberSid,
+		url.Values{"SmsMethod": []string{"POST"}, "SmsUrl": []string{webhookUrl}},
+	)
+	fatal("could not update incoming number", err)
+	log.Printf("%+v", incomingNumber)
 
 	// Process stdio pipes
 	readStdin, writeStdin := io.Pipe()
@@ -108,6 +130,6 @@ func main() {
 		}
 	}()
 
-	log.Println("Listening")
+	log.Println("listening for incoming messages")
 	http.ListenAndServe(":8080", nil)
 }
