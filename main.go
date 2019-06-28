@@ -129,6 +129,6 @@ func main() {
 		}
 	}()
 
-	log.Println("listening for incoming messages")
-	http.ListenAndServe(":8080", nil)
+	log.Println("listening for incoming messages on", ListenAddr)
+	http.ListenAndServe(ListenAddr, nil)
 }
