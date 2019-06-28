@@ -58,13 +58,12 @@ func main() {
 		log.Fatalf("looking for 1 phone number in twilio api, got %d", numCount)
 	}
 	incomingNumberSid := numberPage.IncomingPhoneNumbers[0].Sid
-	incomingNumber, err := client.IncomingNumbers.Update(
+	_, err = client.IncomingNumbers.Update(
 		context.Background(),
 		incomingNumberSid,
 		url.Values{"SmsMethod": []string{"POST"}, "SmsUrl": []string{webhookUrl}},
 	)
 	fatal("could not update incoming number", err)
-	log.Printf("%+v", incomingNumber)
 
 	// Process stdio pipes
 	readStdin, writeStdin := io.Pipe()
